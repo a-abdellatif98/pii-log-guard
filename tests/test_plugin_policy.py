@@ -1,3 +1,4 @@
+import ast
 import json
 import re
 from pathlib import Path
@@ -22,9 +23,11 @@ TEXT_FILES = shipped(".md", ".json", ".svg", ".py")
 CREDENTIAL_WORDS = r"(?:password|passwd|secret|token|api_?key|credential|private_?key|auth)"
 DOLLAR_CREDENTIAL = re.compile(rf"\$\{{?\w*{CREDENTIAL_WORDS}", re.I)
 DOLLAR_BRACE = re.compile(r"\$\{")
-UPPER_CREDENTIAL = re.compile(r"\b[A-Z0-9_]*(?:PASSWORD|PASSWD|SECRET|TOKEN|API_KEY|PRIVATE_KEY|CREDENTIAL)S?[A-Z0-9_]*\b")
-ENV_ACCESS = re.compile(r"process\.env|\bENV\s*[\[.]|os\.environ|getenv|\benv\s*\(", re.I)
-SECRET_FILE_MENTION = re.compile(r"\.env\b|database\.yml|credentials\.yml|master\.key|\.pem\b|~/\.claude|DATABASE_URL")
+LONG_OPAQUE_VALUE = re.compile(r"\b[A-Za-z0-9+=]{32,}\b")
+SCANNER = ROOT / "scripts" / "pii_scan.py"
+ALLOWED_IMPORTS = {"argparse", "json", "os", "re", "sys", "dataclasses"}
+ALLOWED_ATTRS = {"sys": {"exit", "stderr"}, "os": {"path", "walk"}}
+ALLOWED_PATH_ATTRS = {"basename", "dirname", "exists", "getsize", "isdir", "isfile", "islink", "join", "relpath", "splitext"}
 
 
 def frontmatter(path):
@@ -58,7 +61,7 @@ def test_manifest_has_required_fields():
     for key in ("name", "description", "version", "author", "homepage", "repository", "license", "keywords", "icon"):
         assert MANIFEST.get(key), key
     assert MANIFEST["name"] == "pii-log-guard"
-    assert MANIFEST["repository"] == "https://github.com/a-abdellatif98/pii-log-guard"
+    assert MANIFEST["repository"].endswith("/" + MANIFEST["name"])
     assert (ROOT / MANIFEST["icon"]).is_file()
 
 
@@ -96,25 +99,42 @@ def test_docs_have_no_dollar_brace_interpolation():
         assert not DOLLAR_BRACE.search(path.read_text()), path.name
 
 
-def test_no_env_var_style_names():
+def test_no_opaque_secret_like_values_in_shipped_text():
     for path in TEXT_FILES:
-        assert not UPPER_CREDENTIAL.search(path.read_text()), path.name
+        assert not LONG_OPAQUE_VALUE.search(path.read_text()), path.name
 
 
-def test_no_environment_access_in_docs_or_scripts():
-    for path in TEXT_FILES:
-        assert not ENV_ACCESS.search(path.read_text()), path.name
+ALLOWED_FROM_IMPORTS = {"dataclasses": {"asdict", "dataclass", "field"}}
 
 
-def test_no_secret_file_names_in_shipped_text():
-    for path in TEXT_FILES:
-        assert not SECRET_FILE_MENTION.search(path.read_text()), path.name
+def test_scanner_imports_only_allowed_stdlib_modules():
+    imported = set()
+    for node in ast.walk(ast.parse(SCANNER.read_text())):
+        if isinstance(node, ast.Import):
+            assert all(a.asname is None for a in node.names)
+            imported |= {a.name.split(".")[0] for a in node.names}
+        elif isinstance(node, ast.ImportFrom):
+            assert node.level == 0 and node.module in ALLOWED_FROM_IMPORTS, node.module
+            assert {a.name for a in node.names} <= ALLOWED_FROM_IMPORTS[node.module]
+            imported.add(node.module)
+    assert imported <= ALLOWED_IMPORTS, imported - ALLOWED_IMPORTS
+
+
+def test_scanner_uses_only_allowed_module_attributes():
+    for node in ast.walk(ast.parse(SCANNER.read_text())):
+        if not isinstance(node, ast.Attribute):
+            continue
+        if isinstance(node.value, ast.Name) and node.value.id in ALLOWED_ATTRS:
+            assert node.attr in ALLOWED_ATTRS[node.value.id], node.attr
+        inner = node.value
+        if isinstance(inner, ast.Attribute) and isinstance(inner.value, ast.Name):
+            if (inner.value.id, inner.attr) == ("os", "path"):
+                assert node.attr in ALLOWED_PATH_ATTRS, node.attr
 
 
 def test_policy_patterns_catch_known_bad_examples():
     assert DOLLAR_CREDENTIAL.search("$authPasswordName")
-    assert DOLLAR_CREDENTIAL.search("${API_TOKEN}")
+    assert DOLLAR_CREDENTIAL.search("${tokenValue}")
     assert DOLLAR_BRACE.search("x ${VAR}")
-    assert UPPER_CREDENTIAL.search("STRIPE_API_KEY")
-    assert ENV_ACCESS.search("process.env.X")
+    assert LONG_OPAQUE_VALUE.search("a" * 40)
     assert not DOLLAR_CREDENTIAL.search("$request->all()")

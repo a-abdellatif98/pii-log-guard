@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Heuristic static scan for personal or secret data leaking into logs, error trackers, analytics and serializers."""
 
 import argparse
@@ -9,7 +8,7 @@ import sys
 from dataclasses import asdict, dataclass
 
 SKIP_DIRS = {
-    ".git", ".hg", ".svn", ".venv", "venv", "env", "node_modules", "vendor", "__pycache__",
+    ".git", ".hg", ".svn", ".venv", "venv", "node_modules", "vendor", "__pycache__",
     "tmp", "log", "storage", "dist", "build", "coverage", "settings", ".next", ".idea",
 }
 TEST_DIRS = {"spec", "test", "tests", "__tests__", "features", "fixtures", "e2e", "cypress"}
@@ -305,7 +304,10 @@ def scan_rails_filter(root):
 def walk_files(root, include_tests):
     for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
         skip = SKIP_DIRS if include_tests else SKIP_DIRS | TEST_DIRS
-        dirnames[:] = sorted(d for d in dirnames if d not in skip and not d.startswith("."))
+        dirnames[:] = sorted(
+            d for d in dirnames
+            if d not in skip and not d.startswith(".") and not os.path.exists(os.path.join(dirpath, d, "pyvenv.cfg"))
+        )
         in_config = os.path.basename(dirpath) == "config"
         if in_config:
             dirnames[:] = [d for d in dirnames if d == "initializers"]
