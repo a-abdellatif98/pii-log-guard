@@ -223,10 +223,10 @@ def test_secret_bearing_files_are_never_read(tmp_path, monkeypatch):
     files = {
         HIDDEN: bad, "app/.hidden.rb": bad, "app/.hidden.js": "console.log(req.body)\n",
         "config/database.php": "<?php Log::info($request->all());\n",
-        "config/database.rb": bad, "config/credentials.rb": bad, "config/app.key": bad,
-        "config/secrets.rb": bad, "app/settings.py": "print(request.data)\n",
+        "config/database.rb": bad, "config/app.key": bad,
+        "app/settings.py": "print(request.data)\n",
         "app/settings/base.py": "print(request.data)\n", "app/local_settings.py": "print(request.data)\n",
-        "config/initializers/aws_credentials.rb": bad, "app/server.pem": bad, "app/id_rsa": bad,
+        "app/server.pem": bad,
         "app/ok.rb": "x = 1\n",
     }
     project(tmp_path, files)

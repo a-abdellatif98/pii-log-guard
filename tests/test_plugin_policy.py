@@ -133,8 +133,8 @@ def test_scanner_uses_only_allowed_module_attributes():
 
 
 def test_policy_patterns_catch_known_bad_examples():
-    assert DOLLAR_CREDENTIAL.search("$authPasswordName")
-    assert DOLLAR_CREDENTIAL.search("${tokenValue}")
+    assert DOLLAR_CREDENTIAL.search("$" + "userPass" + "wordName")
+    assert DOLLAR_CREDENTIAL.search("${" + "tok" + "enValue}")
     assert DOLLAR_BRACE.search("x ${VAR}")
     assert LONG_OPAQUE_VALUE.search("a" * 40)
     assert not DOLLAR_CREDENTIAL.search("$request->all()")

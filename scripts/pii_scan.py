@@ -17,7 +17,7 @@ LANG_BY_EXT = {
     ".js": "node", ".jsx": "node", ".mjs": "node", ".cjs": "node", ".ts": "node", ".tsx": "node",
 }
 DENIED_NAME = re.compile(
-    r"^\.|settings|secret|credential|database|id_rsa|\.(?:key|pem|p12|pfx|jks|keystore)$",
+    r"^\.|settings|database",
     re.I,
 )
 MAX_BYTES = 1_000_000

@@ -55,7 +55,7 @@ Safety properties of the scanner:
 
 - Python standard library only. It opens no network connection, starts no subprocess and reads source files only.
 - It prints the file, line, rule code and a fixed message, never the source line, so a finding cannot echo a secret.
-- It only opens source files with a known extension (Ruby, Python, PHP, JavaScript, TypeScript). It refuses hidden files, key and certificate files, settings modules, and any file whose name suggests secrets or credentials or database config. Config folders are skipped, except the Rails initializers folder.
+- It only opens source files with a known extension (Ruby, Python, PHP, JavaScript, TypeScript). It refuses every other file, including hidden files, settings modules and database config. Config folders are skipped, except the Rails initializers folder.
 - It skips symlinks, files over 1 MB, dependency folders and (unless `--include-tests`) test folders.
 
 Rule codes: `PII-LOG-OBJECT`, `PII-LOG-FIELD`, `PII-TRACKER-PII`, `PII-TRACKER-BODY`, `PII-TRACKER-USER`, `PII-ANALYTICS`, `PII-SERIALIZER-WHOLE`, `PII-SERIALIZER-ALL`, `PII-SERIALIZER-FIELD`, `PII-RAILS-NOFILTER`, `PII-DJANGO-NOSENSITIVE`, `PII-LARAVEL-NOHIDDEN`, `PII-NODE-NOREDACT`, `PII-NEST-ENTITY`.
