@@ -54,7 +54,7 @@ COMMENT = {
 COMMENT_START = ("#", "//", "*", "/*")
 MASKED = re.compile(r"mask|redact|filtered|sanitiz|scrub|obfuscat|anonymi", re.I)
 
-LOG_LEVELS = r"(?:trace|debug|info|notice|warn|warning|error|exception|critical|fatal|alert|emergency|log|verbose|silly|http)"
+LOG_LEVELS = r"(?:trace|debug|info|notice|warn|warning|error|exception|critical|fatal|alert|emergency|log|verbose|silly)"
 LOG_CALL = {
     "ruby": re.compile(r"\b(?:Rails\.)?logger\.(?:debug|info|warn|error|fatal|unknown|add)\b|\b(?:puts|pp|print)\b"),
     "python": re.compile(rf"\b(?:logger|logging|log)\.{LOG_LEVELS}\s*\(|\bprint\s*\("),
@@ -71,7 +71,7 @@ AFTER_NAME = r"(?![\w\[\(:]|\.(?!inspect|to_h|to_s|to_json|as_json|to_unsafe_h|a
 WHOLE_OBJECT = {
     "ruby": re.compile(
         r"(?<![\w.:])(?:@?(?:params|current_user|user|payload)|"
-        r"request\.(?:params|headers|env|body|raw_post|parameters|request_parameters|query_parameters))"
+        r"request\.(?:params|headers|body|raw_post|parameters|request_parameters|query_parameters))"
         + AFTER_NAME
     ),
     "python": re.compile(
@@ -96,7 +96,7 @@ BODY_ALWAYS = re.compile(r"max_?request_?body_?size\W{0,4}always", re.I)
 SET_USER = re.compile(r"\b(?:setUser|set_user)\b")
 ANALYTICS_CALL = re.compile(
     r"\b(?:analytics|mixpanel|amplitude|segment|posthog|ahoy|heap|rudderanalytics)\s*\.\s*"
-    r"(?:track|identify|capture|alias|group|people\.set|setUserProperties|set_user_properties)\b"
+    r"(?:track|identify|capture|alias|group|setUserProperties|set_user_properties)\b"
 )
 
 ENTITY_NAMES = r"user|users|customer|customers|account|accounts|member|members|profile|profiles"
@@ -124,8 +124,8 @@ FILTER_CLEARED = re.compile(r"filter_parameters\s*(?:\.clear\b|=\s*\[\s*\])")
 MESSAGES = {
     "PII-LOG-OBJECT": "logs a whole request, params or user object; log named non-sensitive fields instead",
     "PII-LOG-FIELD": "logs a field that looks personal or secret; drop it, mask it or log an id",
-    "PII-TRACKER-PII": "error tracker is set to send default PII (cookies, headers, user ip); review before enabling",
-    "PII-TRACKER-BODY": "error tracker is set to always attach request bodies; scrub or turn it off",
+    "PII-TRACKER-PII": "error tracker is configured to send default PII (cookies, headers, user ip); review before enabling",
+    "PII-TRACKER-BODY": "error tracker is configured to always attach request bodies; scrub or turn it off",
     "PII-TRACKER-USER": "error tracker user context carries personal data; send an opaque id",
     "PII-ANALYTICS": "analytics call carries personal data; send an opaque id and non-identifying traits",
     "PII-SERIALIZER-WHOLE": "returns a whole record without a field list; use a serializer or an explicit allow list",
