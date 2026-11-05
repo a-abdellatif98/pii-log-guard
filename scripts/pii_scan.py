@@ -87,7 +87,7 @@ WHOLE_OBJECT = {
     ),
     "node": re.compile(
         r"(?<![\w.])(?:ctx\.)?(?:req|request)\.(?:body|headers|query|cookies|params|rawHeaders|user|session)\b"
-        r"(?![\w\[\(:]|\.(?!toString|toJSON)\w)|"
+        r"(?![\w\[\(:?]|\.(?!toString|toJSON)\w)|"
         r"\{\s*(?:req|request|user|body|headers)\s*[,}]|(?<![\w.])(?:req|request|user|customer|account)(?=\s*[,)])"
     ),
 }
@@ -116,7 +116,7 @@ LARAVEL_MODEL = re.compile(r"class\s+\w+\s+extends\s+\w*(?:Model|Authenticatable
 LARAVEL_MASS_FIELDS = re.compile(r"\$(?:fillable|casts)\s*=\s*\[(.*?)\]", re.S)
 PINO_CALL = re.compile(r"\bpino(?:Http)?\s*\(")
 NEST_ENTITY = re.compile(r"@Entity\s*\(")
-NEST_PROPERTY = re.compile(r"^\s*(?:@\w+\([^)]*\)\s*)*(?:(?:public|private|protected|readonly)\s+)*\w+[!?]?\s*:")
+NEST_PROPERTY = re.compile(r"^\s*(?:@\w+\(.*?\)\s*)*(?:(?:public|private|protected|readonly)\s+)*\w+[!?]?\s*:")
 NEST_EXEMPT = re.compile(r"@Exclude|select:\s*false")
 
 FILTER_SETTING = re.compile(r"^(?!\s*#).*filter_parameters", re.M)
@@ -259,7 +259,7 @@ def scan_file_rules(text, lines, lang, path):
 def decorators_of(lines, number):
     block = [lines[number - 1]]
     index = number - 2
-    while index >= 0 and lines[index].lstrip().startswith("@"):
+    while index >= 0 and not re.search(r"\bclass\b|;\s*$|^\s*}?\s*$", lines[index]):
         block.append(lines[index])
         index -= 1
     return "\n".join(block)

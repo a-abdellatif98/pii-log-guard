@@ -354,3 +354,23 @@ def test_unreadable_file_is_skipped(tmp_path, monkeypatch):
 
     monkeypatch.setattr(scan, "read_file", flaky)
     assert [Path(f.path).name for f in scan.scan_path(str(tmp_path))] == ["b.rb"]
+
+
+def test_nest_inline_exemption_does_not_leak_between_inline_properties(tmp_path):
+    body = "@Entity()\nclass U {\n  @Column({ select: false }) password: string;\n  @Column() email: string;\n}\n"
+    result = scan.scan_path(str(project(tmp_path, {"src/u.ts": body})))
+    assert [(f.code, f.line) for f in result] == [("PII-NEST-ENTITY", 4)]
+
+
+def test_nest_decorator_with_nested_parens_checked(tmp_path):
+    body = "@Entity()\nclass U {\n  @Column({ length: len() }) phone: string;\n}\n"
+    assert codes(tmp_path, {"src/u.ts": body}) == ["PII-NEST-ENTITY"]
+
+
+def test_nest_multiline_decorator_exemption(tmp_path):
+    body = "@Entity()\nclass U {\n  @Column({\n    select: false,\n  })\n  token: string;\n}\n"
+    assert codes(tmp_path, {"src/u.ts": body}) == []
+
+
+def test_optional_chaining_on_req_user_not_flagged(tmp_path):
+    assert codes(tmp_path, {"src/a.js": "console.log(req.user?.id);\n"}) == []
