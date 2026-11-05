@@ -256,10 +256,17 @@ def scan_file_rules(text, lines, lang, path):
     return findings
 
 
+def ends_property(line):
+    if re.search(r"\bclass\b|;\s*$|^\s*}?\s*$", line):
+        return True
+    text = line.strip()
+    return bool(NEST_PROPERTY.match(line)) and not text.startswith("@") and not text.endswith((",", "{"))
+
+
 def decorators_of(lines, number):
     block = [lines[number - 1]]
     index = number - 2
-    while index >= 0 and not re.search(r"\bclass\b|;\s*$|^\s*}?\s*$", lines[index]):
+    while index >= 0 and not ends_property(lines[index]):
         block.append(lines[index])
         index -= 1
     return "\n".join(block)

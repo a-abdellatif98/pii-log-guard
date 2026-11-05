@@ -374,3 +374,9 @@ def test_nest_multiline_decorator_exemption(tmp_path):
 
 def test_optional_chaining_on_req_user_not_flagged(tmp_path):
     assert codes(tmp_path, {"src/a.js": "console.log(req.user?.id);\n"}) == []
+
+
+def test_nest_exemption_does_not_leak_without_semicolons(tmp_path):
+    body = "@Entity()\nclass U {\n  @Column({ select: false })\n  password: string\n  @Column()\n  email: string\n}\n"
+    result = scan.scan_path(str(project(tmp_path, {"src/u.ts": body})))
+    assert [(f.code, f.line) for f in result] == [("PII-NEST-ENTITY", 6)]
