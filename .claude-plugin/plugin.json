@@ -1,0 +1,25 @@
+{
+  "name": "pii-log-guard",
+  "description": "Finds code that leaks personal or secret data into logs, error reports, analytics and API responses in Rails, Django, Laravel and Node (Express/NestJS): whole request or user objects in log calls, missing parameter filtering and redaction, error trackers sending request bodies, and serializers exposing emails, phone numbers, tokens or card data, with a read-only static scanner",
+  "version": "1.0.0",
+  "author": {
+    "name": "Ahmed",
+    "email": "ahmed.abdelatife@gmail.com"
+  },
+  "homepage": "https://github.com/a-abdellatif98/pii-log-guard",
+  "repository": "https://github.com/a-abdellatif98/pii-log-guard",
+  "license": "MIT",
+  "icon": "assets/icon.svg",
+  "keywords": [
+    "django",
+    "express",
+    "laravel",
+    "logging",
+    "nestjs",
+    "pii",
+    "privacy",
+    "rails",
+    "redaction",
+    "serializers"
+  ]
+}
