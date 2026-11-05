@@ -138,3 +138,15 @@ def test_policy_patterns_catch_known_bad_examples():
     assert DOLLAR_BRACE.search("x ${VAR}")
     assert LONG_OPAQUE_VALUE.search("a" * 40)
     assert not DOLLAR_CREDENTIAL.search("$request->all()")
+
+
+def test_scanner_has_no_dynamic_escape_hatches():
+    tree = ast.parse(SCANNER.read_text())
+    bases = {id(n.value) for n in ast.walk(tree) if isinstance(n, ast.Attribute)}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Name):
+            assert node.id not in {"__import__", "getattr", "eval", "exec", "compile", "globals", "vars"}, node.id
+            if node.id in ("os", "sys") and isinstance(node.ctx, ast.Load):
+                assert id(node) in bases, node.id
+        if isinstance(node, ast.Attribute):
+            assert not node.attr.startswith("_"), node.attr
