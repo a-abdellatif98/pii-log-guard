@@ -16,8 +16,8 @@ def checkout(request):
     ...
 ```
 
-- `sensitive_variables()` with no arguments hides every local variable of that function in reports. With names, only those.
-- `sensitive_post_parameters()` with no arguments hides all POST parameters; with names, only those. Apply it as the outermost decorator on the view (the Django docs note the decorator order matters when stacking with others; check the docs for your version).
+- `sensitive_variables()` with no arguments hides every local variable of that function in reports. With names, only those. When stacking decorators, put it at the top of the chain (per the Django docs).
+- `sensitive_post_parameters()` with no arguments hides all POST parameters; with names, only those. Apply it to the view function.
 - These protect error reports. They do not stop `logger.info(request.POST)` in your own code.
 - The reporter filter class can be replaced through the `DEFAULT_EXCEPTION_REPORTER_FILTER` setting for project-wide rules (subclass `SafeExceptionReporterFilter`; check the docs for your version).
 - Never run production with debug mode on: the debug page renders settings and local variables.

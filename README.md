@@ -62,7 +62,7 @@ Rule codes: `PII-LOG-OBJECT`, `PII-LOG-FIELD`, `PII-TRACKER-PII`, `PII-TRACKER-B
 
 ## Limits
 
-Heuristics read one line at a time. Multi-line calls, values passed through helper functions and filters configured outside the standard places are not seen. Framework option names change between versions: the references hedge where it matters.
+Heuristics read one line at a time. The Rails check only confirms that the standard initializer sets some `filter_parameters` list, not that the list is complete. Multi-line calls, values passed through helper functions and filters configured outside the standard places are not seen. Framework option names change between versions: the references hedge where it matters.
 
 ## License
 

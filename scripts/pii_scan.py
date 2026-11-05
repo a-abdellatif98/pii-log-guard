@@ -83,10 +83,10 @@ WHOLE_OBJECT = {
         r"\$request->(?:all|input|post|query|json|headers|cookies|server|toArray)\(\s*\)|"
         r"\brequest\(\)->(?:all|input|post|query|json|headers|cookies|server|toArray)\(\s*\)|"
         r"\$request->headers->all\(\)|\$\w*[uU]ser\w*->(?:toArray|toJson|attributesToArray|getAttributes)\(\)|"
-        r"\b(?:Auth::user|auth\(\)->user)\(\)(?!->\w)|\$request(?![\w>])|\$_(?:POST|GET|REQUEST|COOKIE|SERVER)\b(?!\s*\[)"
+        r"\b(?:Auth::user|auth\(\)->user)\(\)(?!->\w)|\$request(?!\s*->|\w)|\$_(?:POST|GET|REQUEST|COOKIE|SERVER)\b(?!\s*\[)"
     ),
     "node": re.compile(
-        r"(?<![\w.])(?:ctx\.)?(?:req|request)\.(?:body|headers|query|cookies|params|rawHeaders)\b"
+        r"(?<![\w.])(?:ctx\.)?(?:req|request)\.(?:body|headers|query|cookies|params|rawHeaders|user|session)\b"
         r"(?![\w\[\(:]|\.(?!toString|toJSON)\w)|"
         r"\{\s*(?:req|request|user|body|headers)\s*[,}]|(?<![\w.])(?:req|request|user|customer|account)(?=\s*[,)])"
     ),
@@ -116,7 +116,7 @@ LARAVEL_MODEL = re.compile(r"class\s+\w+\s+extends\s+\w*(?:Model|Authenticatable
 LARAVEL_MASS_FIELDS = re.compile(r"\$(?:fillable|casts)\s*=\s*\[(.*?)\]", re.S)
 PINO_CALL = re.compile(r"\bpino(?:Http)?\s*\(")
 NEST_ENTITY = re.compile(r"@Entity\s*\(")
-NEST_PROPERTY = re.compile(r"^\s*(?:(?:public|private|protected|readonly)\s+)*\w+[!?]?\s*:")
+NEST_PROPERTY = re.compile(r"^\s*(?:@\w+\([^)]*\)\s*)*(?:(?:public|private|protected|readonly)\s+)*\w+[!?]?\s*:")
 NEST_EXEMPT = re.compile(r"@Exclude|select:\s*false")
 
 FILTER_SETTING = re.compile(r"^(?!\s*#).*filter_parameters", re.M)
@@ -256,12 +256,20 @@ def scan_file_rules(text, lines, lang, path):
     return findings
 
 
+def decorators_of(lines, number):
+    block = [lines[number - 1]]
+    index = number - 2
+    while index >= 0 and lines[index].lstrip().startswith("@"):
+        block.append(lines[index])
+        index -= 1
+    return "\n".join(block)
+
+
 def scan_nest_entity(lines, path):
     findings = []
     for number, line in enumerate(lines, 1):
         severity = severity_of_words(line) if NEST_PROPERTY.match(line) else None
-        nearby = "\n".join(lines[max(0, number - 4):number])
-        if severity and not NEST_EXEMPT.search(nearby):
+        if severity and not NEST_EXEMPT.search(decorators_of(lines, number)):
             findings.append(make_finding("PII-NEST-ENTITY", severity, path, number))
     return findings
 
@@ -315,8 +323,13 @@ def scan_path(target, include_tests=False):
         paths = walk_files(target, include_tests)
         findings += scan_rails_filter(target)
     for path in paths:
-        if scannable(path):
-            findings += scan_text(read_file(path), LANG_BY_EXT[os.path.splitext(path)[1].lower()], path, os.path.relpath(path, base))
+        if not scannable(path):
+            continue
+        try:
+            text = read_file(path)
+        except OSError:
+            continue
+        findings += scan_text(text, LANG_BY_EXT[os.path.splitext(path)[1].lower()], path, os.path.relpath(path, base))
     return findings
 
 

@@ -315,3 +315,42 @@ def test_script_has_no_network_shell_or_env_access():
 def test_hidden_directories_are_skipped(tmp_path):
     project(tmp_path, {".github/scripts/a.rb": "puts params\n"})
     assert scan.scan_path(str(tmp_path)) == []
+
+
+@pytest.mark.parametrize("line", [
+    "Log::info($request->only(['name']));", "Log::info($request->ip());", "Log::info($request->user()->id);",
+])
+def test_php_request_attribute_access_not_flagged(tmp_path, line):
+    assert codes(tmp_path, {"app/a.php": line + "\n"}) == []
+
+
+@pytest.mark.parametrize("line", ["console.log(req.user);", "logger.info(req.session);"])
+def test_node_req_user_and_session_flagged(tmp_path, line):
+    assert codes(tmp_path, {"src/a.js": line + "\n"}) == ["PII-LOG-OBJECT"]
+
+
+def test_nest_inline_decorator_property_checked(tmp_path):
+    body = "@Entity()\nclass U {\n  @Column() email: string;\n}\n"
+    assert codes(tmp_path, {"src/u.ts": body}) == ["PII-NEST-ENTITY"]
+
+
+def test_nest_exemption_does_not_leak_to_next_property(tmp_path):
+    body = (
+        "@Entity()\nclass U {\n  @Column({ select: false })\n  password: string;\n"
+        "  @Column()\n  token: string;\n}\n"
+    )
+    result = scan.scan_path(str(project(tmp_path, {"src/u.ts": body})))
+    assert [(f.code, f.line) for f in result] == [("PII-NEST-ENTITY", 6)]
+
+
+def test_unreadable_file_is_skipped(tmp_path, monkeypatch):
+    project(tmp_path, {"app/a.rb": "puts params\n", "app/b.rb": "puts params\n"})
+    original = scan.read_file
+
+    def flaky(path):
+        if path.endswith("a.rb"):
+            raise PermissionError(path)
+        return original(path)
+
+    monkeypatch.setattr(scan, "read_file", flaky)
+    assert [Path(f.path).name for f in scan.scan_path(str(tmp_path))] == ["b.rb"]
